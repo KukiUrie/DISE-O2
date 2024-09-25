@@ -7,9 +7,12 @@ import RPi.GPIO as GPIO  # Importa la biblioteca de GPIO
 
 # Configurar los pines GPIO
 GPIO.setmode(GPIO.BCM)  # Usar la numeración BCM de los pines
-GPIO.setup(17, GPIO.IN, pull_up_down=GPIO.PUD_UP)  # Botón 1 en pin 17
-GPIO.setup(27, GPIO.IN, pull_up_down=GPIO.PUD_UP)  # Botón 2 en pin 27
-GPIO.setup(22, GPIO.IN, pull_up_down=GPIO.PUD_UP)  # Botón 3 en pin 22
+GPIO.setup(17, GPIO.IN, pull_up_down=GPIO.PUD_UP)  # Boton 1 en pin 17
+GPIO.setup(27, GPIO.IN, pull_up_down=GPIO.PUD_UP)  # Boton 2 en pin 27
+GPIO.setup(22, GPIO.IN, pull_up_down=GPIO.PUD_UP)  # Boton 3 en pin 22
+GPIO.setup(5, GPIO.IN, pull_up_down=GPIO.PUD_UP) # Boton 4 en pin 5
+GPIO.setup(6, GPIO.IN, pull_up_down=GPIO.PUD_UP) #Boton 5 en pin 6
+GPIO.setup(13, GPIO.IN, pull_up_down=GPIO.PUD_UP) #Boton 6 en pin 13
 
 # Inicializar Pygame
 pygame.init()
@@ -56,7 +59,10 @@ start_button_hover = False
 gpio_key_map = {
     17: "Rojo",
     27: "Verde",
-    22: "Azul"
+    22: "Azul",
+    5: " Amarillo",
+    6: "Naranja",
+    13: "Morado"
 }
 
 # Variables globales
