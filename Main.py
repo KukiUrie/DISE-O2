@@ -223,11 +223,9 @@ def update_background():
     frame_surface = pygame.surfarray.make_surface(frame)
     screen.blit(pygame.transform.rotate(frame_surface, -90), (0, 0))
 
-# Función para crear el botón "Start" personalizado
+# Función para crear el botón "Start" con animación
 def create_start_button():
     global start_button_hover
-
-    # Animar botón al pasar el ratón por encima
     button_width, button_height = 150, 75
     x = screen_width // 2 - button_width // 2
     y = screen_height // 2 - button_height // 2
@@ -277,7 +275,7 @@ def main_menu():
                             # Seleccionar nivel (aquí puedes agregar lógica para cada nivel)
                             print("Nivel seleccionado")
                             menu_state['level'] = False
-                            menu_state['Cancion'] = True
+                            menu_state['difficulty'] = True
                             create_buttons()
                     if back_button and back_button.collidepoint(event.pos):
                         menu_state['level'] = False
