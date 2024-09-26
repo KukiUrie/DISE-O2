@@ -55,12 +55,11 @@ start_button_image = pygame.transform.scale(start_button_image, (120, 80))  # Es
 start_button_hover = False
 
 # Variables del juego de teclas
-# Mapeo actualizado para 3 botones
 gpio_key_map = {
     17: "Rojo",
     27: "Verde",
     22: "Azul",
-    5: " Amarillo",
+    5: "Amarillo",
     6: "Naranja",
     13: "Morado"
 }
@@ -68,6 +67,12 @@ gpio_key_map = {
 # Variables globales
 score = 0
 running = True
+difficulty = "Medio"  # Dificultad por defecto
+difficulty_speed_map = {
+    "Facil": 4,    # Más tiempo entre desafíos
+    "Medio": 3,    # Tiempo moderado
+    "Dificil": 2   # Menos tiempo entre desafíos
+}
 
 # Función para mostrar mensaje en pantalla
 def display_message(message):
@@ -78,7 +83,7 @@ def display_message(message):
 
 # Función principal del juego de teclas
 def game_loop(song):
-    global score, running
+    global score, running, difficulty
     score = 0
     
     # Reproducir la canción seleccionada
@@ -128,18 +133,25 @@ def game_loop(song):
                         waiting_for_input = False
                         break
             
-            # Control del tiempo de respuesta (3 segundos por intento)
-            if time.time() - start_time > 3:
+            # Control del tiempo de respuesta según dificultad
+            if time.time() - start_time > difficulty_speed_map[difficulty]:
                 display_message("Tiempo agotado. Inténtalo de nuevo.")
                 pygame.time.delay(1000)
                 waiting_for_input = False
-        
+
         # Muestra la puntuación actual
         display_message(f"Puntuación: {score}")
         pygame.time.delay(1000)
 
     # Detener la música cuando el juego termine
     pygame.mixer.music.stop()
+
+# Función para manejar las dificultades seleccionadas
+def handle_difficulty_selection(selected_difficulty):
+    global difficulty
+    difficulty = selected_difficulty  # Actualiza la dificultad según lo seleccionado
+    display_message(f"Dificultad seleccionada: {difficulty}")
+    pygame.time.delay(1000)
 
 # Diccionario para almacenar el estado del menú
 menu_state = {
@@ -216,89 +228,98 @@ def create_start_button():
     global start_button_hover
 
     # Animar botón al pasar el ratón por encima
-    button_width = 120 if not start_button_hover else 140
-    button_height = 60 if not start_button_hover else 80
+    button_width, button_height = 150, 75
+    x = screen_width // 2 - button_width // 2
+    y = screen_height // 2 - button_height // 2
 
-    # Escalar la imagen del botón según si está "hovered" o no
-    button_image = pygame.transform.scale(start_button_image, (button_width, button_height))
+    # Detectar si el ratón está sobre el botón
+    mouse_x, mouse_y = pygame.mouse.get_pos()
+    start_button_hover = x < mouse_x < x + button_width and y < mouse_y < y + button_height
 
-    # Obtener la posición centrada del botón en la pantalla
-    button_rect = button_image.get_rect(center=(screen_width // 2, screen_height // 2))
-
+    # Aumentar tamaño si el ratón está encima
+    if start_button_hover:
+        start_button = pygame.transform.scale(start_button_image, (160, 85))
+    else:
+        start_button = pygame.transform.scale(start_button_image, (button_width, button_height))
+    
     # Dibujar el botón en la pantalla
-    screen.blit(button_image, button_rect)
+    screen.blit(start_button, (x, y))
 
-    return button_rect
+    return pygame.Rect(x, y, button_width, button_height)
 
-# Función para crear botones generales
-def create_button(text, x, y, w, h, color):
-    button_rect = pygame.Rect(x, y, w, h)
+# Función para crear botones
+def create_button(text, x, y, width, height, color):
+    button_rect = pygame.Rect(x, y, width, height)
     pygame.draw.rect(screen, color, button_rect)
-    text_surf = font.render(text, True, WHITE)
-    text_rect = text_surf.get_rect(center=button_rect.center)
-    screen.blit(text_surf, text_rect)
+    text_surface = font.render(text, True, WHITE)
+    text_rect = text_surface.get_rect(center=button_rect.center)
+    screen.blit(text_surface, text_rect)
     return button_rect
 
-# Bucle principal del juego
-running = True
-selected_song = None
+# Función principal del menú
+def main_menu():
+    global running
 
-while running:
-    update_background()
-
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
-
-        if event.type == pygame.MOUSEBUTTONDOWN:
-            if menu_state['main']:
-                if start_button and start_button.collidepoint(event.pos):
-                    menu_state['main'] = False
-                    menu_state['level'] = True
-                    create_buttons()
-
-            elif menu_state['level']:
-                for i, btn in enumerate(level_buttons):
-                    if btn.collidepoint(event.pos):
+    while running:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+                return
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                if menu_state['main']:
+                    if start_button and start_button.collidepoint(event.pos):
+                        menu_state['main'] = False
+                        menu_state['level'] = True
+                        create_buttons()
+                elif menu_state['level']:
+                    for button in level_buttons:
+                        if button.collidepoint(event.pos):
+                            # Seleccionar nivel (aquí puedes agregar lógica para cada nivel)
+                            print("Nivel seleccionado")
+                            menu_state['level'] = False
+                            menu_state['Cancion'] = True
+                            create_buttons()
+                    if back_button and back_button.collidepoint(event.pos):
                         menu_state['level'] = False
-                        menu_state['difficulty'] = True
+                        menu_state['main'] = True
                         create_buttons()
-
-            elif menu_state['difficulty']:
-                for i, btn in enumerate(difficulty_buttons):
-                    if btn.collidepoint(event.pos):
-                        menu_state['difficulty'] = False
-                        menu_state['Cancion'] = True
-                        create_buttons()
-
-            elif menu_state['Cancion']:
-                for i, btn in enumerate(song_buttons):
-                    if btn.collidepoint(event.pos):
-                        selected_song = songs[i]
-                        menu_state['Cancion'] = False
-                        game_loop(selected_song)  # Pasa la canción seleccionada al juego
-
-            if back_button and back_button.collidepoint(event.pos):
-                if menu_state['level']:
-                    menu_state['level'] = False
-                    menu_state['main'] = True
                 elif menu_state['difficulty']:
-                    menu_state['difficulty'] = False
-                    menu_state['level'] = True
+                    for i, button in enumerate(difficulty_buttons):
+                        if button.collidepoint(event.pos):
+                            selected_difficulty = ["Facil", "Medio", "Dificil"][i]
+                            handle_difficulty_selection(selected_difficulty)
+                            menu_state['difficulty'] = False
+                            menu_state['Cancion'] = True
+                            create_buttons()
+                    if back_button and back_button.collidepoint(event.pos):
+                        menu_state['difficulty'] = False
+                        menu_state['level'] = True
+                        create_buttons()
                 elif menu_state['Cancion']:
-                    menu_state['Cancion'] = False
-                    menu_state['difficulty'] = True
-                create_buttons()
+                    for i, button in enumerate(song_buttons):
+                        if button.collidepoint(event.pos):
+                            selected_song = songs[i]
+                            game_loop(selected_song)
+                    if back_button and back_button.collidepoint(event.pos):
+                        menu_state['Cancion'] = False
+                        menu_state['level'] = True
+                        create_buttons()
 
-    if menu_state['main']:
-        start_button = create_start_button()
+        # Actualizar el fondo con el video
+        update_background()
 
-    create_buttons()
+        # Crear botones según el estado del menú
+        create_buttons()
 
-    pygame.display.flip()
-    pygame.time.delay(frame_delay)
+        pygame.display.flip()
 
-cap.release()
+# Crear los botones iniciales del menú
+create_buttons()
+
+# Iniciar el menú principal
+main_menu()
+
+# Limpiar los pines GPIO al salir
+GPIO.cleanup()
 pygame.quit()
-GPIO.cleanup()  # Limpiar los pines GPIO al salir
 sys.exit()
