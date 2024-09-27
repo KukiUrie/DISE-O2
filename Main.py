@@ -69,9 +69,9 @@ score = 0
 running = True
 difficulty = "Medio"  # Dificultad por defecto
 difficulty_speed_map = {
-    "Facil": 4,    # Más tiempo entre desafíos
-    "Medio": 3,    # Tiempo moderado
-    "Dificil": 2   # Menos tiempo entre desafíos
+    "Facil": 2,    # Más tiempo entre desafíos
+    "Medio": 1.5,  # Tiempo moderado
+    "Dificil": 1   # Menos tiempo entre desafíos
 }
 
 # Función para mostrar mensaje en pantalla
@@ -80,6 +80,23 @@ def display_message(message):
     text = font.render(message, True, (255, 255, 255))
     screen.blit(text, (screen_width // 2 - text.get_width() // 2, screen_height // 2 - text.get_height() // 2))
     pygame.display.flip()
+
+# Función para mostrar fondo de color
+def display_color_background(color):
+    screen.fill(color)
+    pygame.display.flip()
+
+# Función para obtener el color RGB de un color
+def get_color_rgb(color):
+    color_map = {
+        "Rojo": (255, 0, 0),
+        "Verde": (0, 255, 0),
+        "Azul": (0, 0, 255),
+        "Amarillo": (255, 255, 0),
+        "Naranja": (255, 165, 0),
+        "Morado": (128, 0, 128)
+    }
+    return color_map[color]
 
 # Función principal del juego de teclas
 def game_loop(song):
@@ -90,61 +107,62 @@ def game_loop(song):
     pygame.mixer.music.load(song)
     pygame.mixer.music.play(-1)  # Repetir indefinidamente hasta que se detenga manualmente
     
-    display_message("Presiona Enter para comenzar.")
+    display_message("Presiona un botón para comenzar.")
+ # Espera hasta que el jugador presione un botón GPIO
+while True:
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+            return
+    for pin, btn_color in gpio_key_map.items():
+        if GPIO.input(pin) == GPIO.LOW:  # Si el botón se presiona
+            break
+    else:
+        continue
+    break
+
+# Juego activo
+while running:
+    # Selección aleatoria de botón GPIO
+    gpio_pin, color = random.choice(list(gpio_key_map.items()))
+    display_message(f"Presiona el botón {color}")
+    display_color_background(get_color_rgb(color))  # Muestra el fondo de color
     
-    # Espera hasta que el jugador presione Enter
-    while True:
+    # Espera la interacción del usuario
+    waiting_for_input = True
+    start_time = time.time()
+    
+    while waiting_for_input:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
                 return
-            elif event.type == pygame.KEYDOWN and event.key == pygame.K_RETURN:
-                break
-        else:
-            continue
-        break
 
-    # Juego activo
-    while running:
-        # Selección aleatoria de botón GPIO
-        gpio_pin, color = random.choice(list(gpio_key_map.items()))
-        display_message(f"Presiona el botón {color}")
+        # Verificar si se presionó alguno de los botones físicos
+        for pin, btn_color in gpio_key_map.items():
+            if GPIO.input(pin) == GPIO.LOW:  # Si el botón se presiona
+                if pin == gpio_pin:
+                    score += 1
+                    waiting_for_input = False
+                    break
+                else:
+                    display_message("Botón incorrecto. Inténtalo de nuevo.")
+                    pygame.time.delay(1000)
+                    waiting_for_input = False
+                    break
         
-        # Espera la interacción del usuario
-        waiting_for_input = True
-        start_time = time.time()
-        
-        while waiting_for_input:
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    running = False
-                    return
+        # Control del tiempo de respuesta según dificultad
+        if time.time() - start_time > difficulty_speed_map[difficulty]:
+            display_message("Tiempo agotado. Inténtalo de nuevo.")
+            pygame.time.delay(1000)
+            waiting_for_input = False
 
-            # Verificar si se presionó alguno de los botones físicos
-            for pin, btn_color in gpio_key_map.items():
-                if GPIO.input(pin) == GPIO.LOW:  # Si el botón se presiona
-                    if pin == gpio_pin:
-                        score += 1
-                        waiting_for_input = False
-                        break
-                    else:
-                        display_message("Botón incorrecto. Inténtalo de nuevo.")
-                        pygame.time.delay(1000)
-                        waiting_for_input = False
-                        break
-            
-            # Control del tiempo de respuesta según dificultad
-            if time.time() - start_time > difficulty_speed_map[difficulty]:
-                display_message("Tiempo agotado. Inténtalo de nuevo.")
-                pygame.time.delay(1000)
-                waiting_for_input = False
+    # Muestra la puntuación actual
+    display_message(f"Puntuación: {score}")
+    pygame.time.delay(1000)
 
-        # Muestra la puntuación actual
-        display_message(f"Puntuación: {score}")
-        pygame.time.delay(1000)
-
-    # Detener la música cuando el juego termine
-    pygame.mixer.music.stop()
+# Detener la música cuando el juego termine
+pygame.mixer.music.stop()
 
 # Función para manejar las dificultades seleccionadas
 def handle_difficulty_selection(selected_difficulty):
