@@ -11,8 +11,8 @@ GPIO.setup(17, GPIO.IN, pull_up_down=GPIO.PUD_UP)  # Boton 1 en pin 17
 GPIO.setup(27, GPIO.IN, pull_up_down=GPIO.PUD_UP)  # Boton 2 en pin 27
 GPIO.setup(22, GPIO.IN, pull_up_down=GPIO.PUD_UP)  # Boton 3 en pin 22
 GPIO.setup(5, GPIO.IN, pull_up_down=GPIO.PUD_UP) # Boton 4 en pin 5
-GPIO.setup(6, GPIO.IN, pull_up_down=GPIO.PUD_UP) #Boton 5 en pin 6
-GPIO.setup(13, GPIO.IN, pull_up_down=GPIO.PUD_UP) #Boton 6 en pin 13
+GPIO.setup(6, GPIO.IN, pull_up_down=GPIO.PUD_UP) # Boton 5 en pin 6
+GPIO.setup(13, GPIO.IN, pull_up_down=GPIO.PUD_UP) # Boton 6 en pin 13
 
 # Inicializar Pygame
 pygame.init()
@@ -108,61 +108,62 @@ def game_loop(song):
     pygame.mixer.music.play(-1)  # Repetir indefinidamente hasta que se detenga manualmente
     
     display_message("Presiona un botón para comenzar.")
- # Espera hasta que el jugador presione un botón GPIO
-while True:
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
-            return
-    for pin, btn_color in gpio_key_map.items():
-        if GPIO.input(pin) == GPIO.LOW:  # Si el botón se presiona
-            break
-    else:
-        continue
-    break
 
-# Juego activo
-while running:
-    # Selección aleatoria de botón GPIO
-    gpio_pin, color = random.choice(list(gpio_key_map.items()))
-    display_message(f"Presiona el botón {color}")
-    display_color_background(get_color_rgb(color))  # Muestra el fondo de color
-    
-    # Espera la interacción del usuario
-    waiting_for_input = True
-    start_time = time.time()
-    
-    while waiting_for_input:
+    # Espera hasta que el jugador presione un botón GPIO
+    while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
-                return
-
-        # Verificar si se presionó alguno de los botones físicos
+                return  # Salida correcta del bucle
         for pin, btn_color in gpio_key_map.items():
             if GPIO.input(pin) == GPIO.LOW:  # Si el botón se presiona
-                if pin == gpio_pin:
-                    score += 1
-                    waiting_for_input = False
-                    break
-                else:
-                    display_message("Botón incorrecto. Inténtalo de nuevo.")
-                    pygame.time.delay(1000)
-                    waiting_for_input = False
-                    break
+                break
+        else:
+            continue
+        break
+
+    # Juego activo
+    while running:
+        # Selección aleatoria de botón GPIO
+        gpio_pin, color = random.choice(list(gpio_key_map.items()))
+        display_message(f"Presiona el botón {color}")
+        display_color_background(get_color_rgb(color))  # Muestra el fondo de color
+
+        # Espera la interacción del usuario
+        waiting_for_input = True
+        start_time = time.time()
         
-        # Control del tiempo de respuesta según dificultad
-        if time.time() - start_time > difficulty_speed_map[difficulty]:
-            display_message("Tiempo agotado. Inténtalo de nuevo.")
-            pygame.time.delay(1000)
-            waiting_for_input = False
+        while waiting_for_input:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    running = False
+                    return  # Salida correcta del bucle
 
-    # Muestra la puntuación actual
-    display_message(f"Puntuación: {score}")
-    pygame.time.delay(1000)
+            # Verificar si se presionó alguno de los botones físicos
+            for pin, btn_color in gpio_key_map.items():
+                if GPIO.input(pin) == GPIO.LOW:  # Si el botón se presiona
+                    if pin == gpio_pin:
+                        score += 1
+                        waiting_for_input = False
+                        break
+                    else:
+                        display_message("Botón incorrecto. Inténtalo de nuevo.")
+                        pygame.time.delay(1000)
+                        waiting_for_input = False
+                        break
+            
+            # Control del tiempo de respuesta según dificultad
+            if time.time() - start_time > difficulty_speed_map[difficulty]:
+                display_message("Tiempo agotado. Inténtalo de nuevo.")
+                pygame.time.delay(1000)
+                waiting_for_input = False
 
-# Detener la música cuando el juego termine
-pygame.mixer.music.stop()
+        # Muestra la puntuación actual
+        display_message(f"Puntuación: {score}")
+        pygame.time.delay(1000)
+
+    # Detener la música cuando el juego termine
+    pygame.mixer.music.stop()
 
 # Función para manejar las dificultades seleccionadas
 def handle_difficulty_selection(selected_difficulty):
@@ -193,7 +194,6 @@ songs = ["cancion1.mp3", "cancion2.mp3", "cancion3.mp3"]
 def create_buttons():
     global start_button, level_buttons, difficulty_buttons, song_buttons, back_button
     if menu_state['main']:
-        # Botón de inicio personalizado con imagen y posible animación
         start_button = create_start_button()
         back_button = None
     elif menu_state['level']:
@@ -225,117 +225,95 @@ def create_buttons():
         spacing = (screen_width - (num_songs * button_width)) // (num_songs + 1)  # Espaciado dinámico
 
         song_buttons = [
-            create_button(f"Cancion {i+1}", spacing + i * (button_width + spacing), 250, button_width, button_height, BLUE) 
+            create_button(f"Cancion {i+1}", spacing + i * (button_width + spacing), 250, button_width, button_height, BLUE)
             for i in range(num_songs)
         ]
         back_button = create_button("Back", 350, 350, 100, 50, BLUE)
 
-# Función para actualizar el fondo animado
-def update_background():
-    ret, frame = cap.read()
-    if not ret:
-        cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
-        return
-    frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-    frame = cv2.resize(frame, (screen_width, screen_height))
-    frame_surface = pygame.surfarray.make_surface(frame)
-    screen.blit(pygame.transform.rotate(frame_surface, -90), (0, 0))
-
-# Función para crear el botón "Start" con animación
+# Crear botón de inicio
 def create_start_button():
-    global start_button_hover
-    button_width, button_height = 150, 75
-    x = screen_width // 2 - button_width // 2
-    y = screen_height // 2 - button_height // 2
+    button_width = 120
+    button_height = 80
+    x_pos = screen_width // 2 - button_width // 2
+    y_pos = screen_height // 2 - button_height // 2
+    return pygame.Rect(x_pos, y_pos, button_width, button_height)
 
-    # Detectar si el ratón está sobre el botón
-    mouse_x, mouse_y = pygame.mouse.get_pos()
-    start_button_hover = x < mouse_x < x + button_width and y < mouse_y < y + button_height
-
-    # Aumentar tamaño si el ratón está encima
-    if start_button_hover:
-        start_button = pygame.transform.scale(start_button_image, (160, 85))
-    else:
-        start_button = pygame.transform.scale(start_button_image, (button_width, button_height))
-    
-    # Dibujar el botón en la pantalla
-    screen.blit(start_button, (x, y))
-
-    return pygame.Rect(x, y, button_width, button_height)
-
-# Función para crear botones
+# Crear botón de nivel
 def create_button(text, x, y, width, height, color):
     button_rect = pygame.Rect(x, y, width, height)
     pygame.draw.rect(screen, color, button_rect)
-    text_surface = font.render(text, True, WHITE)
-    text_rect = text_surface.get_rect(center=button_rect.center)
-    screen.blit(text_surface, text_rect)
+    button_text = font.render(text, True, WHITE)
+    text_rect = button_text.get_rect(center=button_rect.center)
+    screen.blit(button_text, text_rect)
+    pygame.display.flip()  # Actualiza la pantalla con el botón renderizado
     return button_rect
 
-# Función principal del menú
+# Loop del menú principal
 def main_menu():
-    global running
+    global start_button, running, menu_state
+    clock = pygame.time.Clock()
 
     while running:
+        create_buttons()
+        
+        # Revisar eventos
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
-                return
-            elif event.type == pygame.MOUSEBUTTONDOWN:
-                if menu_state['main']:
-                    if start_button and start_button.collidepoint(event.pos):
-                        menu_state['main'] = False
-                        menu_state['level'] = True
-                        create_buttons()
-                elif menu_state['level']:
-                    for button in level_buttons:
-                        if button.collidepoint(event.pos):
-                            # Seleccionar nivel (aquí puedes agregar lógica para cada nivel)
-                            print("Nivel seleccionado")
-                            menu_state['level'] = False
-                            menu_state['difficulty'] = True
-                            create_buttons()
-                    if back_button and back_button.collidepoint(event.pos):
-                        menu_state['level'] = False
-                        menu_state['main'] = True
-                        create_buttons()
-                elif menu_state['difficulty']:
-                    for i, button in enumerate(difficulty_buttons):
-                        if button.collidepoint(event.pos):
-                            selected_difficulty = ["Facil", "Medio", "Dificil"][i]
-                            handle_difficulty_selection(selected_difficulty)
-                            menu_state['difficulty'] = False
-                            menu_state['Cancion'] = True
-                            create_buttons()
-                    if back_button and back_button.collidepoint(event.pos):
-                        menu_state['difficulty'] = False
-                        menu_state['level'] = True
-                        create_buttons()
-                elif menu_state['Cancion']:
-                    for i, button in enumerate(song_buttons):
-                        if button.collidepoint(event.pos):
-                            selected_song = songs[i]
-                            game_loop(selected_song)
-                    if back_button and back_button.collidepoint(event.pos):
-                        menu_state['Cancion'] = False
-                        menu_state['level'] = True
+                return  # Salida correcta del bucle
+
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if start_button and start_button.collidepoint(event.pos) and menu_state['main']:
+                    menu_state['main'] = False
+                    menu_state['level'] = True
+                    create_buttons()  # Redibujar botones para el siguiente menú
+                    
+                if back_button and back_button.collidepoint(event.pos):
+                    menu_state = {'main': True, 'level': False, 'difficulty': False, 'Cancion': False}
+
+                # Lógica para manejar la selección de nivel
+                for i, button in enumerate(level_buttons):
+                    if button.collidepoint(event.pos):
+                        menu_state = {'main': False, 'level': False, 'difficulty': True, 'Cancion': False}
                         create_buttons()
 
-        # Actualizar el fondo con el video
-        update_background()
+                # Lógica para manejar la selección de dificultad
+                for i, button in enumerate(difficulty_buttons):
+                    if button.collidepoint(event.pos):
+                        selected_difficulty = ["Facil", "Medio", "Dificil"][i]
+                        handle_difficulty_selection(selected_difficulty)
+                        menu_state = {'main': False, 'level': False, 'difficulty': False, 'Cancion': True}
+                        create_buttons()
 
-        # Crear botones según el estado del menú
-        create_buttons()
+                # Lógica para manejar la selección de canción
+                for i, button in enumerate(song_buttons):
+                    if button.collidepoint(event.pos):
+                        selected_song = songs[i]
+                        game_loop(selected_song)  # Iniciar el juego con la canción seleccionada
 
+        # Actualizar el video de fondo
+        ret, frame = cap.read()
+        if not ret:
+            cap.set(cv2.CAP_PROP_POS_FRAMES, 0)  # Reiniciar el video
+            continue
+
+        # Convertir el frame de BGR a RGB para Pygame
+        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        frame_surface = pygame.surfarray.make_surface(frame_rgb)
+        frame_surface = pygame.transform.scale(frame_surface, (screen_width, screen_height))
+        screen.blit(frame_surface, (0, 0))
+
+        # Dibuja el botón "Start" en el menú principal
+        if start_button and menu_state['main']:
+            if start_button_hover:
+                pygame.draw.rect(screen, (0, 255, 0), start_button)  # Cambiar el color cuando el ratón está sobre el botón
+            screen.blit(start_button_image, (start_button.x, start_button.y))
+
+        # Actualiza la pantalla
         pygame.display.flip()
+        clock.tick(30)
 
-# Crear los botones iniciales del menú
-create_buttons()
+    pygame.quit()
 
-# Iniciar el menú principal
+# Inicia el menú principal
 main_menu()
-
-# Limpiar los pines GPIO al salir
-GPIO.cleanup()
-pygame.quit()
-sys.exit()
