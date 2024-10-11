@@ -1,53 +1,22 @@
 import time
 import RPi.GPIO as GPIO
-import pygame
 
 # Configurar los pines GPIO
 GPIO.setmode(GPIO.BCM)
-GPIO.setup(17, GPIO.IN, pull_up_down=GPIO.PUD_UP)  # Botón del medio
-GPIO.setup(27, GPIO.IN, pull_up_down=GPIO.PUD_UP)  # Botón 2
-GPIO.setup(22, GPIO.IN, pull_up_down=GPIO.PUD_UP)  # Botón 3
-GPIO.setup(5, GPIO.IN, pull_up_down=GPIO.PUD_UP)   # Botón 4
-GPIO.setup(6, GPIO.IN, pull_up_down=GPIO.PUD_UP)   # Botón 5
-GPIO.setup(13, GPIO.IN, pull_up_down=GPIO.PUD_UP)  # Botón 6
+GPIO.setup(17, GPIO.IN, pull_up_down=GPIO.PUD_UP)  # Botón del medio (Iniciar/Confirmar)
+GPIO.setup(27, GPIO.IN, pull_up_down=GPIO.PUD_UP)  # Botón 2 (Dificultad Fácil)
+GPIO.setup(22, GPIO.IN, pull_up_down=GPIO.PUD_UP)  # Botón 3 (Dificultad Media)
+GPIO.setup(5, GPIO.IN, pull_up_down=GPIO.PUD_UP)   # Botón 4 (Dificultad Difícil)
+GPIO.setup(6, GPIO.IN, pull_up_down=GPIO.PUD_UP)   # Botón 5 (Regresar al menú)
+GPIO.setup(13, GPIO.IN, pull_up_down=GPIO.PUD_UP)  # Botón 6 (Salir)
 
-# Configurar LEDs
-led_pins = [18, 23, 24]  # Pines de los LEDs para las 3 dificultades
-for pin in led_pins:
-    GPIO.setup(pin, GPIO.OUT)
+# Función que muestra el menú de dificultad
+def difficulty_menu():
+    print("Seleccione la dificultad:")
+    print(" - Botón 2: Fácil")
+    print(" - Botón 3: Media")
+    print(" - Botón 4: Difícil")
 
-# Inicializar Pygame Mixer para los sonidos
-pygame.mixer.init()
-
-# Función para reproducir sonido
-def play_sound(sound_file):
-    pygame.mixer.music.load(sound_file)
-    pygame.mixer.music.play()
-
-# Función para encender LEDs
-def leds_on():
-    for pin in led_pins:
-        GPIO.output(pin, GPIO.HIGH)
-
-# Función para apagar LEDs
-def leds_off():
-    for pin in led_pins:
-        GPIO.output(pin, GPIO.LOW)
-
-# Menú principal guiado por botones
-def main_menu():
-    print("Bienvenido a Focusboard, presione el botón del medio para iniciar")
-    play_sound('welcome.mp3')  # Reproducir sonido de bienvenida
-    
-    # Esperar a que se presione el botón del medio
-    while GPIO.input(17) == GPIO.HIGH:
-        time.sleep(0.1)
-    
-    print("Seleccione la dificultad")
-    play_sound('select_difficulty.mp3')  # Reproducir sonido de selección
-    leds_on()  # Encender los LEDs
-
-    # Esperar a que el usuario seleccione una dificultad (botones 2, 3, o 4)
     selected_difficulty = None
     while not selected_difficulty:
         if GPIO.input(27) == GPIO.LOW:
@@ -57,12 +26,41 @@ def main_menu():
         elif GPIO.input(5) == GPIO.LOW:
             selected_difficulty = "Difícil"
 
-    print(f"Dificultad seleccionada: {selected_difficulty}")
-    play_sound(f'{selected_difficulty.lower()}.mp3')  # Reproducir sonido de dificultad seleccionada
-    leds_off()  # Apagar los LEDs
+        # Permitir salir o volver al menú principal
+        if GPIO.input(6) == GPIO.LOW:
+            print("Volviendo al menú principal...")
+            return None
+        elif GPIO.input(13) == GPIO.LOW:
+            print("Saliendo del sistema...")
+            GPIO.cleanup()
+            exit()
 
-    # Aquí continuarías con el siguiente paso del juego
-    # ...
+    print(f"Dificultad seleccionada: {selected_difficulty}")
+    time.sleep(2)
+    return selected_difficulty
+
+# Menú principal
+def main_menu():
+    print("Bienvenidos a Focusboard.")  # Mensaje al iniciar
+    while True:
+        print("\n--- Menú Principal ---")
+        print("Presione el botón del medio (Botón 1) para iniciar.")
+        print(" - Botón 6: Salir")
+        
+        # Esperar la selección del botón del medio para continuar
+        while GPIO.input(17) == GPIO.HIGH:
+            if GPIO.input(13) == GPIO.LOW:
+                print("Saliendo del sistema...")
+                GPIO.cleanup()
+                exit()
+            time.sleep(0.1)
+        
+        print("Iniciando selección de dificultad...")
+        selected_difficulty = difficulty_menu()  # Mostrar el menú de selección
+        
+        if selected_difficulty:
+            print(f"Juego iniciado con dificultad: {selected_difficulty}")
+            time.sleep(2)  # Esperar un poco antes de volver al menú principal
 
 # Iniciar el menú principal
 try:
