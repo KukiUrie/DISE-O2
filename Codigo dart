@@ -1,0 +1,384 @@
+import 'package:flutter/material.dart';
+
+void main() {
+  runApp(const MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'FocusBoard',
+      home: const WelcomeScreen(),
+    );
+  }
+}
+
+// Clase para almacenar las selecciones del juego
+class GameSelections {
+  String song = '';
+  String level = '';
+  String difficulty = '';
+
+  bool isComplete() {
+    return song.isNotEmpty && level.isNotEmpty && difficulty.isNotEmpty;
+  }
+}
+
+// Pantalla de bienvenida con el PIN
+class WelcomeScreen extends StatefulWidget {
+  const WelcomeScreen({super.key});
+
+  @override
+  _WelcomeScreenState createState() => _WelcomeScreenState();
+}
+
+class _WelcomeScreenState extends State<WelcomeScreen>
+    with SingleTickerProviderStateMixin {
+  final TextEditingController _pinController = TextEditingController();
+  late AnimationController _controller;
+  late Animation<double> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(seconds: 2),
+      vsync: this,
+    );
+    _animation = CurvedAnimation(parent: _controller, curve: Curves.easeInOut);
+    _controller.repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _pinController.dispose();
+    super.dispose();
+  }
+
+  void _login() {
+    if (_pinController.text == '1234') {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => HomeScreen(selections: GameSelections()),
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('PIN incorrecto'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              FadeTransition(
+                opacity: _animation,
+                child: Image.asset(
+                  'assets/icono.png',
+                  height: 150,
+                ),
+              ),
+              const SizedBox(height: 30),
+              const Text(
+                'Welcome to FocusBoard',
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 20),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.lock, color: Colors.teal),
+                  const SizedBox(width: 10),
+                  SizedBox(
+                    width: 200,
+                    child: TextField(
+                      controller: _pinController,
+                      obscureText: true,
+                      decoration: InputDecoration(
+                        hintText: 'PIN',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 30),
+              ElevatedButton(
+                onPressed: _login,
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 50, vertical: 15),
+                ),
+                child: const Text('Log in'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// Pantalla principal con opciones
+class HomeScreen extends StatelessWidget {
+  final GameSelections selections;
+
+  const HomeScreen({required this.selections, super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('MENU')),
+      backgroundColor: Colors.white,
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Column(
+            children: [
+              Image.asset(
+                'assets/icono.png',
+                height: 150,
+              ),
+              const SizedBox(height: 30),
+              Expanded(
+                child: GridView.count(
+                  crossAxisCount: 2,
+                  mainAxisSpacing: 20,
+                  crossAxisSpacing: 20,
+                  children: [
+                    IconMenuItem(
+                      icon: Icons.music_note,
+                      label: 'Canción',
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                SongSelectionScreen(selections: selections),
+                          ),
+                        );
+                      },
+                    ),
+                    IconMenuItem(
+                      icon: Icons.gamepad,
+                      label: 'Nivel',
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                LevelSelectionScreen(selections: selections),
+                          ),
+                        );
+                      },
+                    ),
+                    IconMenuItem(
+                      icon: Icons.settings,
+                      label: 'Dificultad',
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                DifficultySelectionScreen(selections: selections),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// Widget para los ítems del menú principal
+class IconMenuItem extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  const IconMenuItem({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    super.key,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, size: 50),
+          const SizedBox(height: 10),
+          Text(label, style: const TextStyle(fontSize: 18)),
+        ],
+      ),
+    );
+  }
+}
+
+// Pantalla de selección de canciones
+class SongSelectionScreen extends StatelessWidget {
+  final GameSelections selections;
+
+  const SongSelectionScreen({required this.selections, super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final songs = ['Canción 1', 'Canción 2', 'Canción 3', 'Canción 4', 'Canción 5'];
+
+    return Scaffold(
+      appBar: AppBar(title: const Text('Selecciona una Canción')),
+      body: ListView.builder(
+        itemCount: songs.length,
+        itemBuilder: (context, index) {
+          return ListTile(
+            title: Text(songs[index]),
+            onTap: () {
+              selections.song = songs[index];
+              if (selections.isComplete()) {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => ScoreScreen(selections: selections),
+                  ),
+                );
+              } else {
+                Navigator.pop(context);
+              }
+            },
+          );
+        },
+      ),
+    );
+  }
+}
+
+// Pantalla de selección de niveles
+class LevelSelectionScreen extends StatelessWidget {
+  final GameSelections selections;
+
+  const LevelSelectionScreen({required this.selections, super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final levels = ['Nivel 1', 'Nivel 2', 'Nivel 3', 'Nivel 4', 'Nivel 5'];
+
+    return Scaffold(
+      appBar: AppBar(title: const Text('Selecciona el Nivel')),
+      body: ListView.builder(
+        itemCount: levels.length,
+        itemBuilder: (context, index) {
+          return ListTile(
+            title: Text(levels[index]),
+            onTap: () {
+              selections.level = levels[index];
+              if (selections.isComplete()) {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => ScoreScreen(selections: selections),
+                  ),
+                );
+              } else {
+                Navigator.pop(context);
+              }
+            },
+          );
+        },
+      ),
+    );
+  }
+}
+
+// Pantalla de selección de dificultad
+class DifficultySelectionScreen extends StatelessWidget {
+  final GameSelections selections;
+
+  const DifficultySelectionScreen({required this.selections, super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final difficulties = ['Fácil', 'Medio', 'Difícil'];
+
+    return Scaffold(
+      appBar: AppBar(title: const Text('Selecciona la Dificultad')),
+      body: ListView.builder(
+        itemCount: difficulties.length,
+        itemBuilder: (context, index) {
+          return ListTile(
+            title: Text(difficulties[index]),
+            onTap: () {
+              selections.difficulty = difficulties[index];
+              if (selections.isComplete()) {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => ScoreScreen(selections: selections),
+                  ),
+                );
+              } else {
+                Navigator.pop(context);
+              }
+            },
+          );
+        },
+      ),
+    );
+  }
+}
+
+// Pantalla del score final
+class ScoreScreen extends StatelessWidget {
+  final GameSelections selections;
+
+  const ScoreScreen({required this.selections, super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Score')),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text('Canción: ${selections.song}'),
+            Text('Nivel: ${selections.level}'),
+            Text('Dificultad: ${selections.difficulty}'),
+            const SizedBox(height: 20),
+            const Text(
+              'Score: 0',
+              style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+      ),
+);
+}
+}
