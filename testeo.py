@@ -1,3 +1,5 @@
+
+# https://core-electronics.com.au/guides/fully-addressable-rgb-raspberry-pi/
 import time
 import RPi.GPIO as GPIO
 
