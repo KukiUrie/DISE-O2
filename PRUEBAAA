@@ -30,8 +30,13 @@ def cascade_on(strip, color, delay_time=0.05):
         time.sleep(delay_time)
 
 def turn_off(strip):
-    """Apaga todos los LEDs de una tira"""
+    """Apaga todos los LEDs de una tira y asegura que estén completamente apagados"""
     strip.fill((0, 0, 0))
+    strip.show()
+    time.sleep(0.1)  # Asegúrate de dar tiempo a que el comando de apagado se procese
+    # Refuerza el apagado enviando un segundo comando de apagado explícito
+    for i in range(len(strip)):
+        strip[i] = (0, 0, 0)
     strip.show()
 
 # Bucle principal
