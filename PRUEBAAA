@@ -1,5 +1,3 @@
-
-
 import time
 import board
 import neopixel
@@ -21,8 +19,12 @@ GPIO.setmode(GPIO.BCM)
 GPIO.setup(BUTTON_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)  # Activa resistencia pull-up interna
 
 def cascade_on(strip, color, delay_time=0.05):
-    """Enciende los LEDs de la tira en una animación tipo cascada"""
+    """Enciende los LEDs de la tira en una animación tipo cascada, pero verifica si el botón es presionado"""
     for i in range(len(strip)):
+        if GPIO.input(BUTTON_PIN) == GPIO.LOW:  # Si el botón se presiona, salir de la función
+            turn_off(strip1)
+            turn_off(strip2)
+            return
         strip[i] = color
         strip.show()
         time.sleep(delay_time)
