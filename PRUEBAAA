@@ -52,3 +52,23 @@ except KeyboardInterrupt:
     # Apaga los LEDs al finalizar el script
     turn_off_all_strips()
     GPIO.cleanup()  # Limpia la configuración del GPIO
+
+
+
+
+
+
+>>> %Run -c $EDITOR_CONTENT
+Gpio 13 is illegal for LED channel 0
+Traceback (most recent call last):
+  File "<string>", line 48, in <module>
+  File "<string>", line 25, in cascade_on
+  File "/home/t-nexus/mi_entorno/lib/python3.11/site-packages/adafruit_pixelbuf.py", line 204, in show
+    return self._transmit(self._post_brightness_buffer)
+  File "/home/t-nexus/mi_entorno/lib/python3.11/site-packages/neopixel.py", line 180, in _transmit
+    neopixel_write(self.pin, buffer)
+  File "/home/t-nexus/mi_entorno/lib/python3.11/site-packages/neopixel_write.py", line 46, in neopixel_write
+    return _neopixel.neopixel_write(gpio, buf)
+  File "/home/t-nexus/mi_entorno/lib/python3.11/site-packages/adafruit_blinka/microcontroller/bcm283x/neopixel.py", line 82, in neopixel_write
+    raise RuntimeError(
+RuntimeError: ws2811_init failed with code -11 (Selected GPIO not possible)
