@@ -1,74 +1,45 @@
 import time
-import board
-import neopixel
+import serial
 import RPi.GPIO as GPIO
 
-# Configuración de pines y cantidad de LEDs por tira
-PINS = [board.D18, board.D21, board.D12, board.D13, board.D19, board.D20, board.D26]  # Pines GPIO para cada tira
-NUM_LEDS_PER_STRIP = 10
-BUTTON_PIN = 17  # Pin para el botón
+# Configura la conexión serial con el Arduino
+ser = serial.Serial('/dev/ttyACM0', 9600)  # Asegúrate de que el puerto sea el correcto
 
-# Inicialización de las tiras de LEDs (7 tiras de 10 LEDs cada una)
-strips = [neopixel.NeoPixel(pin, NUM_LEDS_PER_STRIP, brightness=1, auto_write=False) for pin in PINS]
-
-# Configuración del botón
+# Configuración del botón en la Raspberry Pi
+BUTTON_PIN = 17
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(BUTTON_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)  # Activa resistencia pull-up interna
 
-def cascade_on(strip, color, delay_time=0.05):
-    """Enciende los LEDs de la tira en una animación tipo cascada, pero verifica si el botón es presionado"""
-    for i in range(len(strip)):
-        if GPIO.input(BUTTON_PIN) == GPIO.LOW:  # Si el botón se presiona, salir de la función
-            turn_off_all_strips()
-            return
-        strip[i] = color
-        strip.show()
-        time.sleep(delay_time)
+# Estado inicial
+leds_on = False  # Variable para rastrear el estado actual de las tiras de LEDs
 
-def turn_off_all_strips():
-    """Apaga todos los LEDs de todas las tiras y asegura que estén completamente apagados"""
-    for strip in strips:
-        strip.fill((0, 0, 0))
-        strip.show()
-    time.sleep(0.1)  # Da tiempo para asegurar que se apaguen
-    for strip in strips:
-        for i in range(len(strip)):
-            strip[i] = (0, 0, 0)
-        strip.show()
+# Función para enviar un comando al Arduino
+def send_command(command):
+    ser.write((command + '\n').encode())  # Envía el comando con una nueva línea al final
 
-# Bucle principal
+# Bucle principal para verificar el estado del botón
 try:
     while True:
-        if GPIO.input(BUTTON_PIN) == GPIO.LOW:  # Botón presionado
-            turn_off_all_strips()
-        else:
-            # Realiza la animación de encendido en cascada para cada tira
-            colors = [(255, 0, 0), (0, 255, 0), (0, 0, 255), (255, 255, 0), (0, 255, 255), (255, 0, 255), (255, 255, 255)]
-            for strip, color in zip(strips, colors):
-                cascade_on(strip, color, 0.05)  # Aplica la animación de cascada con colores diferentes para cada tira
-        time.sleep(0.1)  # Evita sobrecarga del bucle
+        # Detecta si el botón ha sido presionado
+        if GPIO.input(BUTTON_PIN) == GPIO.LOW:  # El botón está presionado
+            if not leds_on:
+                send_command("ENCENDER")
+                leds_on = True
+                print("Comando enviado: ENCENDER")
+            else:
+                send_command("APAGAR")
+                leds_on = False
+                print("Comando enviado: APAGAR")
+            
+            # Espera a que se suelte el botón antes de continuar
+            while GPIO.input(BUTTON_PIN) == GPIO.LOW:
+                time.sleep(0.1)
+        
+        # Agrega un pequeño retardo para evitar lecturas rápidas
+        time.sleep(0.1)
 
 except KeyboardInterrupt:
-    # Apaga los LEDs al finalizar el script
-    turn_off_all_strips()
-    GPIO.cleanup()  # Limpia la configuración del GPIO
-
-
-
-
-
-
->>> %Run -c $EDITOR_CONTENT
-Gpio 13 is illegal for LED channel 0
-Traceback (most recent call last):
-  File "<string>", line 48, in <module>
-  File "<string>", line 25, in cascade_on
-  File "/home/t-nexus/mi_entorno/lib/python3.11/site-packages/adafruit_pixelbuf.py", line 204, in show
-    return self._transmit(self._post_brightness_buffer)
-  File "/home/t-nexus/mi_entorno/lib/python3.11/site-packages/neopixel.py", line 180, in _transmit
-    neopixel_write(self.pin, buffer)
-  File "/home/t-nexus/mi_entorno/lib/python3.11/site-packages/neopixel_write.py", line 46, in neopixel_write
-    return _neopixel.neopixel_write(gpio, buf)
-  File "/home/t-nexus/mi_entorno/lib/python3.11/site-packages/adafruit_blinka/microcontroller/bcm283x/neopixel.py", line 82, in neopixel_write
-    raise RuntimeError(
-RuntimeError: ws2811_init failed with code -11 (Selected GPIO not possible)
+    print("Apagando todas las tiras y cerrando la conexión...")
+    send_command("APAGAR")  # Apagar todas las tiras al finalizar
+    ser.close()
+    GPIO.cleanup()  # Limpia la configuración de GPIO
