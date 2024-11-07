@@ -3,16 +3,13 @@ import board
 import neopixel
 import RPi.GPIO as GPIO
 
-# Configuración de pines
-PIN_STRIP1 = board.D18       # Pin de datos para la primera tira de LEDs
-PIN_STRIP2 = board.D21       # Pin de datos para la segunda tira de LEDs
-BUTTON_PIN = 17              # Pin para el botón (GPIO 17)
-NUM_LEDS_STRIP1 = 30         # Número de LEDs en la primera tira
-NUM_LEDS_STRIP2 = 6          # Número de LEDs en la segunda tira
+# Configuración de pines y cantidad de LEDs por tira
+PINS = [board.D18, board.D21, board.D12, board.D13, board.D19, board.D20, board.D26]  # Pines GPIO para cada tira
+NUM_LEDS_PER_STRIP = 10
+BUTTON_PIN = 17  # Pin para el botón
 
-# Inicialización de las tiras de LEDs
-strip1 = neopixel.NeoPixel(PIN_STRIP1, NUM_LEDS_STRIP1, brightness=1, auto_write=False)
-strip2 = neopixel.NeoPixel(PIN_STRIP2, NUM_LEDS_STRIP2, brightness=1, auto_write=False)
+# Inicialización de las tiras de LEDs (7 tiras de 10 LEDs cada una)
+strips = [neopixel.NeoPixel(pin, NUM_LEDS_PER_STRIP, brightness=1, auto_write=False) for pin in PINS]
 
 # Configuración del botón
 GPIO.setmode(GPIO.BCM)
@@ -22,37 +19,36 @@ def cascade_on(strip, color, delay_time=0.05):
     """Enciende los LEDs de la tira en una animación tipo cascada, pero verifica si el botón es presionado"""
     for i in range(len(strip)):
         if GPIO.input(BUTTON_PIN) == GPIO.LOW:  # Si el botón se presiona, salir de la función
-            turn_off(strip1)
-            turn_off(strip2)
+            turn_off_all_strips()
             return
         strip[i] = color
         strip.show()
         time.sleep(delay_time)
 
-def turn_off(strip):
-    """Apaga todos los LEDs de una tira y asegura que estén completamente apagados"""
-    strip.fill((0, 0, 0))
-    strip.show()
-    time.sleep(0.1)  # Asegúrate de dar tiempo a que el comando de apagado se procese
-    # Refuerza el apagado enviando un segundo comando de apagado explícito
-    for i in range(len(strip)):
-        strip[i] = (0, 0, 0)
-    strip.show()
+def turn_off_all_strips():
+    """Apaga todos los LEDs de todas las tiras y asegura que estén completamente apagados"""
+    for strip in strips:
+        strip.fill((0, 0, 0))
+        strip.show()
+    time.sleep(0.1)  # Da tiempo para asegurar que se apaguen
+    for strip in strips:
+        for i in range(len(strip)):
+            strip[i] = (0, 0, 0)
+        strip.show()
 
 # Bucle principal
 try:
     while True:
         if GPIO.input(BUTTON_PIN) == GPIO.LOW:  # Botón presionado
-            turn_off(strip1)
-            turn_off(strip2)
+            turn_off_all_strips()
         else:
-            # Animación en cascada en verde para strip1 y azul para strip2
-            cascade_on(strip1, (0, 255, 0), 0.05)  # Verde para strip1
-            cascade_on(strip2, (0, 0, 255), 0.05)  # Azul para strip2
+            # Realiza la animación de encendido en cascada para cada tira
+            colors = [(255, 0, 0), (0, 255, 0), (0, 0, 255), (255, 255, 0), (0, 255, 255), (255, 0, 255), (255, 255, 255)]
+            for strip, color in zip(strips, colors):
+                cascade_on(strip, color, 0.05)  # Aplica la animación de cascada con colores diferentes para cada tira
         time.sleep(0.1)  # Evita sobrecarga del bucle
 
 except KeyboardInterrupt:
     # Apaga los LEDs al finalizar el script
-    turn_off(strip1)
-    turn_off(strip2)
+    turn_off_all_strips()
     GPIO.cleanup()  # Limpia la configuración del GPIO
