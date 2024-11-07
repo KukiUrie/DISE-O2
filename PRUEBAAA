@@ -1,0 +1,51 @@
+
+
+import time
+import board
+import neopixel
+import RPi.GPIO as GPIO
+
+# Configuración de pines
+PIN_STRIP1 = board.D18       # Pin de datos para la primera tira de LEDs
+PIN_STRIP2 = board.D21       # Pin de datos para la segunda tira de LEDs
+BUTTON_PIN = 17              # Pin para el botón (GPIO 17)
+NUM_LEDS_STRIP1 = 30         # Número de LEDs en la primera tira
+NUM_LEDS_STRIP2 = 6          # Número de LEDs en la segunda tira
+
+# Inicialización de las tiras de LEDs
+strip1 = neopixel.NeoPixel(PIN_STRIP1, NUM_LEDS_STRIP1, brightness=1, auto_write=False)
+strip2 = neopixel.NeoPixel(PIN_STRIP2, NUM_LEDS_STRIP2, brightness=1, auto_write=False)
+
+# Configuración del botón
+GPIO.setmode(GPIO.BCM)
+GPIO.setup(BUTTON_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)  # Activa resistencia pull-up interna
+
+def cascade_on(strip, color, delay_time=0.05):
+    """Enciende los LEDs de la tira en una animación tipo cascada"""
+    for i in range(len(strip)):
+        strip[i] = color
+        strip.show()
+        time.sleep(delay_time)
+
+def turn_off(strip):
+    """Apaga todos los LEDs de una tira"""
+    strip.fill((0, 0, 0))
+    strip.show()
+
+# Bucle principal
+try:
+    while True:
+        if GPIO.input(BUTTON_PIN) == GPIO.LOW:  # Botón presionado
+            turn_off(strip1)
+            turn_off(strip2)
+        else:
+            # Animación en cascada en verde para strip1 y azul para strip2
+            cascade_on(strip1, (0, 255, 0), 0.05)  # Verde para strip1
+            cascade_on(strip2, (0, 0, 255), 0.05)  # Azul para strip2
+        time.sleep(0.1)  # Evita sobrecarga del bucle
+
+except KeyboardInterrupt:
+    # Apaga los LEDs al finalizar el script
+    turn_off(strip1)
+    turn_off(strip2)
+    GPIO.cleanup()  # Limpia la configuración del GPIO
