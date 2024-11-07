@@ -5,35 +5,42 @@ import RPi.GPIO as GPIO
 # Configura la conexión serial con el Arduino
 ser = serial.Serial('/dev/ttyACM0', 9600)  # Asegúrate de que el puerto sea el correcto
 
-# Configuración del botón en la Raspberry Pi
-BUTTON_PIN = 17
+# Configuración de los pines de los botones
 GPIO.setmode(GPIO.BCM)
-GPIO.setup(BUTTON_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)  # Activa resistencia pull-up interna
+button_pins = [17, 27, 22, 5, 6, 13, 19]  # Pines GPIO de los botones
 
-# Estado inicial
-leds_on = False  # Variable para rastrear el estado actual de las tiras de LEDs
+# Configura cada pin de botón con pull-up
+for pin in button_pins:
+    GPIO.setup(pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+
+# Estado inicial de los LEDs
+leds_on = False  # Variable para rastrear si los LEDs están encendidos o apagados
 
 # Función para enviar un comando al Arduino
 def send_command(command):
     ser.write((command + '\n').encode())  # Envía el comando con una nueva línea al final
 
-# Bucle principal para verificar el estado del botón
+# Bucle principal para verificar el estado de los botones
 try:
     while True:
-        # Detecta si el botón ha sido presionado
-        if GPIO.input(BUTTON_PIN) == GPIO.LOW:  # El botón está presionado
-            if not leds_on:
-                send_command("ENCENDER")
-                leds_on = True
-                print("Comando enviado: ENCENDER")
-            else:
-                send_command("APAGAR")
-                leds_on = False
-                print("Comando enviado: APAGAR")
-            
-            # Espera a que se suelte el botón antes de continuar
-            while GPIO.input(BUTTON_PIN) == GPIO.LOW:
-                time.sleep(0.1)
+        # Verifica si se ha presionado cualquier botón
+        for pin in button_pins:
+            if GPIO.input(pin) == GPIO.LOW:  # El botón está presionado
+                if not leds_on:
+                    send_command("ENCENDER")
+                    leds_on = True
+                    print("Comando enviado: ENCENDER")
+                else:
+                    send_command("APAGAR")
+                    leds_on = False
+                    print("Comando enviado: APAGAR")
+                
+                # Espera a que se suelte el botón antes de continuar
+                while GPIO.input(pin) == GPIO.LOW:
+                    time.sleep(0.1)
+                
+                # Salir del bucle para evitar múltiples activaciones
+                break
         
         # Agrega un pequeño retardo para evitar lecturas rápidas
         time.sleep(0.1)
