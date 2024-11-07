@@ -3,16 +3,17 @@ import cv2
 import sys
 import random
 import time
-import RPi.GPIO as GPIO  # Importa la biblioteca de GPIO
+import serial
+import RPi.GPIO as GPIO
 
-# Configurar los pines GPIO
-GPIO.setmode(GPIO.BCM)  # Usar la numeración BCM de los pines
-GPIO.setup(17, GPIO.IN, pull_up_down=GPIO.PUD_UP)  # Boton 1 en pin 17
-GPIO.setup(27, GPIO.IN, pull_up_down=GPIO.PUD_UP)  # Boton 2 en pin 27
-GPIO.setup(22, GPIO.IN, pull_up_down=GPIO.PUD_UP)  # Boton 3 en pin 22
-GPIO.setup(5, GPIO.IN, pull_up_down=GPIO.PUD_UP)  # Boton 4 en pin 5
-GPIO.setup(6, GPIO.IN, pull_up_down=GPIO.PUD_UP)  # Boton 5 en pin 6
-GPIO.setup(13, GPIO.IN, pull_up_down=GPIO.PUD_UP)  # Boton 6 en pin 13
+# Configura la conexión serial con el Arduino
+ser = serial.Serial('/dev/ttyACM0', 9600)  # Asegúrate de que el puerto sea el correcto
+
+# Configuración de los pines GPIO de los botones
+GPIO.setmode(GPIO.BCM)
+button_pins = [17, 27, 22, 5, 6, 13]
+for pin in button_pins:
+    GPIO.setup(pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)  # Configura los botones con resistencia pull-up
 
 # Inicializar Pygame
 pygame.init()
@@ -38,20 +39,9 @@ if not cap.isOpened():
 
 # Variables para controlar la reproducción del video
 fps = cap.get(cv2.CAP_PROP_FPS)
-frame_delay = int(1000 / fps)  # Tiempo de espera entre cuadros
+frame_delay = int(1000 / fps)
 
-# Colores
-WHITE = (255, 255, 255)
-BLUE = (0, 0, 255)
-
-# Configuración de fuente
-font = pygame.font.Font(None, 40)
-
-# Cargar la imagen personalizada del botón "Start"
-start_button_image = pygame.image.load("star2.png")  # Ruta a tu imagen
-start_button_image = pygame.transform.scale(start_button_image, (120, 80))  # Escalar imagen
-
-# Variables del juego de teclas
+# Mapeo de colores y botones
 gpio_key_map = {
     17: "Rojo",
     27: "Verde",
@@ -61,48 +51,36 @@ gpio_key_map = {
     13: "Morado"
 }
 
-# Variables globales
+# Variables de juego
 score = 0
 running = True
 difficulty = "Medio"  # Dificultad por defecto
 difficulty_speed_map = {
-    "Facil": 2,    # Más tiempo entre desafíos
-    "Medio": 1.5,  # Tiempo moderado
-    "Dificil": 1   # Menos tiempo entre desafíos
+    "Facil": 2,
+    "Medio": 1.5,
+    "Dificil": 1
 }
+
+# Función para enviar comando al Arduino
+def send_command_to_arduino(command):
+    ser.write((command + '\n').encode())
 
 # Función para mostrar mensaje en pantalla
 def display_message(message):
     screen.fill((0, 0, 0))
+    font = pygame.font.Font(None, 40)
     text = font.render(message, True, (255, 255, 255))
     screen.blit(text, (screen_width // 2 - text.get_width() // 2, screen_height // 2 - text.get_height() // 2))
     pygame.display.flip()
 
-# Función para mostrar fondo de color
-def display_color_background(color):
-    screen.fill(color)
-    pygame.display.flip()
-
-# Función para obtener el color RGB de un color
-def get_color_rgb(color):
-    color_map = {
-        "Rojo": (255, 0, 0),
-        "Verde": (0, 255, 0),
-        "Azul": (0, 0, 255),
-        "Amarillo": (255, 255, 0),
-        "Naranja": (255, 165, 0),
-        "Morado": (128, 0, 128)
-    }
-    return color_map[color]
-
-# Función principal del juego de teclas
+# Función principal del juego
 def game_loop(song):
     global score, running, difficulty
     score = 0
     
     # Reproducir la canción seleccionada
     pygame.mixer.music.load(song)
-    pygame.mixer.music.play(-1)  # Repetir indefinidamente hasta que se detenga manualmente
+    pygame.mixer.music.play(-1)
     
     display_message("Presiona ENTER para comenzar.")
 
@@ -113,18 +91,18 @@ def game_loop(song):
             if event.type == pygame.QUIT:
                 running = False
                 return
-            elif event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_RETURN:  # Tecla ENTER
-                    waiting_for_enter = False
-                    break
+            elif event.type == pygame.KEYDOWN and event.key == pygame.K_RETURN:
+                waiting_for_enter = False
+                break
 
     # Juego activo
     while running:
-        # Selección aleatoria de botón GPIO
         gpio_pin, color = random.choice(list(gpio_key_map.items()))
         display_message(f"Presiona el botón {color}")
-        display_color_background(get_color_rgb(color))  # Muestra el fondo de color
-
+        
+        # Enviar comando para encender el LED del color correspondiente
+        send_command_to_arduino("ENCENDER " + color)
+        
         waiting_for_input = True
         start_time = time.time()
 
@@ -153,6 +131,9 @@ def game_loop(song):
                 pygame.time.delay(1000)
                 waiting_for_input = False
 
+        # Enviar comando para apagar todos los LEDs
+        send_command_to_arduino("APAGAR")
+        
         # Muestra la puntuación actual
         display_message(f"Puntuación: {score}")
         pygame.time.delay(1000)
@@ -186,23 +167,12 @@ def main_menu():
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if start_button and start_button.collidepoint(event.pos):
                     create_buttons()
-                    game_loop(songs[0])  # Inicia el juego con la primera canción
+                    game_loop("song.mp3")  # Inicia el juego con una canción
 
         # Actualizar el fondo con el video
         update_background()
 
-        # Solo redibujar botones si el estado cambió
-        if previous_state != menu_state:
-            create_buttons()
-            previous_state = menu_state
-
         pygame.display.flip()
-
-# Crear los botones iniciales del menú
-create_buttons()
-
-# Iniciar el menú principal
-main_menu()
 
 # Limpiar los pines GPIO al salir
 GPIO.cleanup()
