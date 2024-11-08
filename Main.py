@@ -25,8 +25,10 @@ try:
                 if GPIO.input(pin) == GPIO.LOW:
                     send_command("START_GAME")
                     print("Juego iniciado")
-                    # Reproduce la canción usando aplay
+                    
+                    # Inicia la reproducción de la canción en segundo plano usando aplay
                     music_process = subprocess.Popen(["aplay", "cancion.wav"])
+                    
                     game_started = True
                     time.sleep(0.5)
                     break
@@ -36,6 +38,7 @@ try:
                     command = f"CHECK_STRIP_{index + 1}"
                     send_command(command)
                     print(f"Comando enviado: {command}")
+                    
                     # Espera a que se suelte el botón antes de continuar
                     while GPIO.input(pin) == GPIO.LOW:
                         time.sleep(0.1)
@@ -44,7 +47,10 @@ try:
 
 except KeyboardInterrupt:
     print("Cerrando el juego y limpiando los pines GPIO...")
+    
+    # Detiene la música si está en reproducción
     if music_process:
-        music_process.terminate()  # Detiene la música
+        music_process.terminate()
+        
     ser.close()
     GPIO.cleanup()
