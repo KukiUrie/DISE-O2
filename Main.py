@@ -25,7 +25,7 @@ try:
         if not game_started:
             # Reinicia el contador de intentos fallidos
             failed_attempts = 0
-            # Espera a que cualquier botón de dificultad sea presionado para iniciar el juego
+            # Espera el comando para iniciar el juego con la dificultad elegida
             for pin in BUTTON_PINS:
                 if GPIO.input(pin) == GPIO.LOW:
                     if pin == 22:  # Amarillo - Fácil
@@ -38,7 +38,7 @@ try:
                         send_command("START_GAME_HARD")
                         print("Juego iniciado en nivel difícil")
 
-                    # Inicia la música
+                    # Inicia la música y el juego
                     music_process = subprocess.Popen(["aplay", "cancion.wav"])
                     game_started = True
                     time.sleep(0.5)
@@ -47,6 +47,7 @@ try:
             # Verifica si se ha alcanzado el límite de intentos fallidos
             if failed_attempts >= max_attempts:
                 print("Juego terminado. Se alcanzó el número máximo de intentos fallidos.")
+                send_command("END_GAME")  # Envía el comando para finalizar el juego en Arduino
                 if music_process:
                     music_process.terminate()  # Detiene la música
                 game_started = False  # Reinicia el estado del juego para volver a empezar
@@ -76,6 +77,7 @@ try:
 
 except KeyboardInterrupt:
     print("Cerrando el juego y limpiando los pines GPIO...")
+    send_command("END_GAME")  # Finaliza el juego en Arduino si se interrumpe
     if music_process:
         music_process.terminate()
     ser.close()
