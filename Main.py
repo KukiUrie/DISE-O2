@@ -5,8 +5,10 @@ import RPi.GPIO as GPIO
 # Configura la conexión serial con el Arduino
 ser = serial.Serial('/dev/ttyACM0', 9600)  # Asegúrate de que el puerto sea el correcto
 
-# Configuración de los pines de los botones en la Raspberry Pi
-BUTTON_PINS = [17, 22, 27, 6, 5, 13, 19]  # Pines de cada botón
+# Configuración de los pines de los botones y sus colores en la Raspberry Pi
+BUTTON_PINS = [17, 22, 27, 13, 5, 19, 6]  # Pines de cada botón
+# Colores asociados (para referencia, no es necesario para la lógica en Python):
+# 17 - Azul, 22 - Amarillo, 27 - Naranja, 13 - Blanco, 5 - Verde, 19 - Rojo, 6 - Morado
 
 GPIO.setmode(GPIO.BCM)
 for pin in BUTTON_PINS:
