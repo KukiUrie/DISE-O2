@@ -22,19 +22,14 @@ try:
         for index, pin in enumerate(BUTTON_PINS):
             # Verifica si el botón está presionado
             if GPIO.input(pin) == GPIO.LOW:
-                # Enviar el comando para encender la tira específica (ejemplo: "ENCENDER_STRIP_1")
-                command = f"ENCENDER_STRIP_{index + 1}"
+                # Envía el comando para apagar la tira específica (ejemplo: "APAGAR_STRIP_1")
+                command = f"APAGAR_STRIP_{index + 1}"
                 send_command(command)
                 print(f"Comando enviado: {command}")
 
                 # Espera a que se suelte el botón antes de continuar
                 while GPIO.input(pin) == GPIO.LOW:
                     time.sleep(0.1)
-
-                # Envía el comando para apagar la tira después de que el botón se suelta
-                command = f"APAGAR_STRIP_{index + 1}"
-                send_command(command)
-                print(f"Comando enviado: {command}")
 
         # Agrega un pequeño retardo para evitar lecturas demasiado rápidas
         time.sleep(0.1)
